@@ -1,7 +1,13 @@
 import { useState } from 'react';
+import { motion } from 'motion/react';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 import { ArrowRight, RefreshCw } from 'lucide-react';
 
-export default function RSACipher() {
+export function RSACipher() {
   const [text, setText] = useState('');
   const [p, setP] = useState(61);
   const [q, setQ] = useState(53);
@@ -10,7 +16,8 @@ export default function RSACipher() {
   const [result, setResult] = useState('');
   const [publicKey, setPublicKey] = useState<{ n: number; e: number } | null>(null);
   const [privateKey, setPrivateKey] = useState<{ n: number; d: number } | null>(null);
-  const [useLetters, setUseLetters] = useState(true);
+
+  /* ================= RSA MATH ================= */
 
   const isPrime = (num: number): boolean => {
     if (num < 2) return false;
@@ -20,9 +27,7 @@ export default function RSACipher() {
     return true;
   };
 
-  const gcd = (a: number, b: number): number => {
-    return b === 0 ? a : gcd(b, a % b);
-  };
+  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
 
   const extendedGCD = (a: number, b: number): [number, number, number] => {
     if (b === 0) return [a, 1, 0];
@@ -38,394 +43,190 @@ export default function RSACipher() {
 
   const modPow = (base: number, exp: number, mod: number): number => {
     let result = 1;
-    base = base % mod;
+    base %= mod;
     while (exp > 0) {
-      if (exp % 2 === 1) {
-        result = (result * base) % mod;
-      }
+      if (exp % 2 === 1) result = (result * base) % mod;
       exp = Math.floor(exp / 2);
       base = (base * base) % mod;
     }
     return result;
   };
 
-  const numberToLetters = (num: number): string => {
-    let result = '';
-    let n = num;
-    if (n === 0) return 'A';
-    
-    while (n > 0) {
-      result = String.fromCharCode(65 + (n % 26)) + result;
-      n = Math.floor(n / 26);
-    }
-    return result;
-  };
+  /* ========== LETTER MAPPING (READABLE OUTPUT) ========== */
 
-  const lettersToNumber = (letters: string): number => {
-    let result = 0;
-    for (let i = 0; i < letters.length; i++) {
-      result = result * 26 + (letters.charCodeAt(i) - 65);
-    }
-    return result;
-  };
+  const charToNumber = (c: string) => c.charCodeAt(0) - 65; // A=0
+  const numberToChar = (n: number) => String.fromCharCode((n % 26) + 65);
+
+  /* ================= KEY GENERATION ================= */
 
   const generateKeys = () => {
-    const newSteps: string[] = [];
+    const s: string[] = [];
 
-    if (!isPrime(p)) {
-      newSteps.push(`ERROR: p = ${p} is not a prime number!`);
-      setSteps(newSteps);
+    if (!isPrime(p) || !isPrime(q)) {
+      s.push('ERROR: p and q must be prime numbers');
+      setSteps(s);
       return;
     }
-    if (!isPrime(q)) {
-      newSteps.push(`ERROR: q = ${q} is not a prime number!`);
-      setSteps(newSteps);
-      return;
-    }
-
-    newSteps.push('RSA Key Generation');
-    newSteps.push('---');
-    newSteps.push(`Step 1: Select two prime numbers`);
-    newSteps.push(`  p = ${p}`);
-    newSteps.push(`  q = ${q}`);
-    newSteps.push('---');
 
     const n = p * q;
-    newSteps.push(`Step 2: Calculate n = p × q`);
-    newSteps.push(`  n = ${p} × ${q} = ${n}`);
-    newSteps.push('---');
-
     const phi = (p - 1) * (q - 1);
-    newSteps.push(`Step 3: Calculate φ(n) = (p-1) × (q-1)`);
-    newSteps.push(`  φ(n) = ${p - 1} × ${q - 1} = ${phi}`);
-    newSteps.push('---');
 
     if (gcd(e, phi) !== 1) {
-      newSteps.push(`ERROR: e = ${e} is not coprime with φ(n) = ${phi}!`);
-      newSteps.push(`  gcd(${e}, ${phi}) = ${gcd(e, phi)} ≠ 1`);
-      setSteps(newSteps);
+      s.push(`ERROR: gcd(${e}, ${phi}) ≠ 1`);
+      setSteps(s);
       return;
     }
-
-    newSteps.push(`Step 4: Select e (public exponent)`);
-    newSteps.push(`  e = ${e}`);
-    newSteps.push(`  Verify: gcd(e, φ(n)) = gcd(${e}, ${phi}) = ${gcd(e, phi)} ✓`);
-    newSteps.push('---');
 
     const d = modInverse(e, phi);
-    if (d === -1) {
-      newSteps.push(`ERROR: Cannot find modular inverse of e!`);
-      setSteps(newSteps);
-      return;
-    }
 
-    newSteps.push(`Step 5: Calculate d (private exponent)`);
-    newSteps.push(`  d ≡ e⁻¹ (mod φ(n))`);
-    newSteps.push(`  d = ${d}`);
-    newSteps.push(`  Verify: (e × d) mod φ(n) = (${e} × ${d}) mod ${phi} = ${(e * d) % phi} ✓`);
-    newSteps.push('---');
-
-    newSteps.push(`Public Key: (n=${n}, e=${e})`);
-    newSteps.push(`Private Key: (n=${n}, d=${d})`);
+    s.push('RSA Key Generation');
+    s.push('---');
+    s.push(`p = ${p}, q = ${q}`);
+    s.push(`n = p × q = ${n}`);
+    s.push(`φ(n) = ${phi}`);
+    s.push(`Public exponent e = ${e}`);
+    s.push(`Private exponent d = ${d}`);
+    s.push('---');
+    s.push(`Public Key: (n=${n}, e=${e})`);
+    s.push(`Private Key: (n=${n}, d=${d})`);
 
     setPublicKey({ n, e });
     setPrivateKey({ n, d });
-    setSteps(newSteps);
+    setSteps(s);
   };
+
+  /* ================= ENCRYPT ================= */
 
   const encrypt = () => {
-    if (!text || !publicKey) {
-      const newSteps = ['Please generate keys first!'];
-      setSteps(newSteps);
-      return;
-    }
+    if (!text || !publicKey) return;
 
-    const newSteps: string[] = [];
+    const s: string[] = [];
     const { n, e } = publicKey;
+    const clean = text.toUpperCase().replace(/[^A-Z]/g, '');
 
-    newSteps.push('RSA Encryption');
-    newSteps.push(`Public Key: (n=${n}, e=${e})`);
-    newSteps.push('---');
+    s.push('RSA Encryption');
+    s.push('Letter mapping: A=0 ... Z=25');
+    s.push('Formula: C = M^e mod n');
+    s.push('---');
 
-    const cleanText = text.toUpperCase().replace(/[^A-Z]/g, '');
-    const encrypted: number[] = [];
-    const encryptedLetters: string[] = [];
+    let cipher = '';
 
-    for (let i = 0; i < cleanText.length; i++) {
-      const m = cleanText.charCodeAt(i);
-      if (m >= n) {
-        newSteps.push(`ERROR: Character '${cleanText[i]}' (ASCII ${m}) is >= n (${n})`);
-        newSteps.push(`Please use larger primes or stick to basic ASCII characters.`);
-        setSteps(newSteps);
-        return;
-      }
-    }
-
-    newSteps.push('Converting characters to ciphertext:');
-    newSteps.push('Formula: C = M^e mod n');
-    newSteps.push('---');
-
-    for (let i = 0; i < cleanText.length; i++) {
-      const char = cleanText[i];
-      const m = char.charCodeAt(0);
+    for (const ch of clean) {
+      const m = charToNumber(ch);
       const c = modPow(m, e, n);
-      encrypted.push(c);
-      
-      if (useLetters) {
-        const letterCode = numberToLetters(c);
-        encryptedLetters.push(letterCode);
-        newSteps.push(`'${char}' (ASCII ${m}): ${m}^${e} mod ${n} = ${c} → ${letterCode}`);
-      } else {
-        newSteps.push(`'${char}' (ASCII ${m}): ${m}^${e} mod ${n} = ${c}`);
-      }
+      const out = numberToChar(c);
+      cipher += out;
+      s.push(`${ch} → ${m} → ${m}^${e} mod ${n} = ${c} → ${out}`);
     }
 
-    newSteps.push('---');
-    const encryptedText = useLetters ? encryptedLetters.join(' ') : encrypted.join(' ');
-    newSteps.push(`Encrypted: ${encryptedText}`);
+    s.push('---');
+    s.push(`Encrypted text: ${cipher}`);
 
-    setSteps(newSteps);
-    setResult(encryptedText);
+    setSteps(s);
+    setResult(cipher);
   };
 
+  /* ================= DECRYPT ================= */
+
   const decrypt = () => {
-    if (!text || !privateKey) {
-      const newSteps = ['Please generate keys first!'];
-      setSteps(newSteps);
-      return;
-    }
+    if (!text || !privateKey) return;
 
-    const newSteps: string[] = [];
+    const s: string[] = [];
     const { n, d } = privateKey;
+    const clean = text.toUpperCase().replace(/[^A-Z]/g, '');
 
-    newSteps.push('RSA Decryption');
-    newSteps.push(`Private Key: (n=${n}, d=${d})`);
-    newSteps.push('---');
+    s.push('RSA Decryption');
+    s.push('Letter mapping: A=0 ... Z=25');
+    s.push('Formula: M = C^d mod n');
+    s.push('---');
 
-    try {
-      let cipherNumbers: number[];
-      
-      const tokens = text.trim().split(/\s+/);
-      if (useLetters && /^[A-Z]+$/.test(tokens[0])) {
-        cipherNumbers = tokens.map(token => lettersToNumber(token));
-        newSteps.push('Converting letter codes to numbers...');
-        tokens.forEach((token, i) => {
-          newSteps.push(`${token} → ${cipherNumbers[i]}`);
-        });
-        newSteps.push('---');
-      } else {
-        cipherNumbers = tokens.map(s => parseInt(s)).filter(n => !isNaN(n));
-      }
-      
-      newSteps.push('Converting ciphertext to plaintext:');
-      newSteps.push('Formula: M = C^d mod n');
-      newSteps.push('---');
+    let plain = '';
 
-      let decrypted = '';
-
-      for (let i = 0; i < cipherNumbers.length; i++) {
-        const c = cipherNumbers[i];
-        const m = modPow(c, d, n);
-        const char = String.fromCharCode(m);
-        decrypted += char;
-        
-        newSteps.push(`${c}^${d} mod ${n} = ${m} (ASCII) = '${char}'`);
-      }
-
-      newSteps.push('---');
-      newSteps.push(`Decrypted text: ${decrypted}`);
-
-      setSteps(newSteps);
-      setResult(decrypted);
-    } catch (error) {
-      newSteps.push('ERROR: Invalid ciphertext format!');
-      setSteps(newSteps);
-      setResult('');
+    for (const ch of clean) {
+      const c = charToNumber(ch);
+      const m = modPow(c, d, n);
+      const out = numberToChar(m);
+      plain += out;
+      s.push(`${ch} → ${c} → ${c}^${d} mod ${n} = ${m} → ${out}`);
     }
+
+    s.push('---');
+    s.push(`Decrypted text: ${plain}`);
+
+    setSteps(s);
+    setResult(plain);
   };
 
   const generateRandomPrimes = () => {
     const primes = [11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
-    const randomP = primes[Math.floor(Math.random() * primes.length)];
-    let randomQ = primes[Math.floor(Math.random() * primes.length)];
-    while (randomQ === randomP) {
-      randomQ = primes[Math.floor(Math.random() * primes.length)];
-    }
-    setP(randomP);
-    setQ(randomQ);
+    let rp = primes[Math.floor(Math.random() * primes.length)];
+    let rq = primes[Math.floor(Math.random() * primes.length)];
+    while (rp === rq) rq = primes[Math.floor(Math.random() * primes.length)];
+    setP(rp);
+    setQ(rq);
   };
 
+  /* ================= UI ================= */
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mb-2">
-            RSA Cipher Educational Tool
-          </h1>
-          <p className="text-slate-400">Learn RSA encryption with step-by-step visualization</p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Configuration Panel */}
-          <div className="bg-slate-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg shadow-xl">
-            <div className="p-6 border-b border-slate-700">
-              <h2 className="text-xl font-semibold text-cyan-300">RSA Cipher Configuration</h2>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Prime p</label>
-                  <input
-                    type="number"
-                    value={p}
-                    onChange={(e) => setP(parseInt(e.target.value) || 2)}
-                    className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Prime q</label>
-                  <input
-                    type="number"
-                    value={q}
-                    onChange={(e) => setQ(parseInt(e.target.value) || 2)}
-                    className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={generateRandomPrimes}
-                className="w-full px-4 py-2 bg-slate-800/50 border border-cyan-500/30 text-cyan-300 rounded-lg hover:bg-cyan-500/10 transition-colors flex items-center justify-center gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Generate Random Primes
-              </button>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Public Exponent e</label>
-                <input
-                  type="number"
-                  value={e}
-                  onChange={(e) => setE(parseInt(e.target.value) || 3)}
-                  className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                />
-                <p className="text-xs text-slate-400 mt-1">Common values: 3, 17, 65537</p>
-              </div>
-
-              <button
-                onClick={generateKeys}
-                className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-medium transition-all"
-              >
-                Generate Keys
-              </button>
-
-              {publicKey && privateKey && (
-                <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg space-y-1">
-                  <p className="text-green-300 text-sm font-mono">
-                    Public: (n={publicKey.n}, e={publicKey.e})
-                  </p>
-                  <p className="text-green-300 text-sm font-mono">
-                    Private: (n={privateKey.n}, d={privateKey.d})
-                  </p>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 p-3 bg-slate-800/30 rounded-lg border border-slate-700">
-                <input
-                  type="checkbox"
-                  id="useLetters"
-                  checked={useLetters}
-                  onChange={(e) => setUseLetters(e.target.checked)}
-                  className="w-4 h-4 accent-cyan-500"
-                />
-                <label htmlFor="useLetters" className="text-slate-300 cursor-pointer text-sm">
-                  Use letter encoding (A-Z) instead of numbers
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Input Text / Ciphertext</label>
-                <input
-                  type="text"
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder={useLetters ? "Enter text or space-separated letter codes" : "Enter text or space-separated numbers"}
-                  className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={encrypt}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2"
-                >
-                  Encrypt
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={decrypt}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2"
-                >
-                  Decrypt
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-
-              {result && (
-                <div className="p-4 bg-slate-800/50 rounded-lg border border-cyan-500/30">
-                  <label className="text-cyan-300 mb-2 block font-medium">Result:</label>
-                  <p className="text-white font-mono break-all text-sm">{result}</p>
-                </div>
-              )}
-            </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Card className="bg-slate-900/50 border-cyan-500/20">
+        <CardHeader>
+          <CardTitle className="text-cyan-300">RSA Cipher</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Input type="number" value={p} onChange={e => setP(+e.target.value)} />
+            <Input type="number" value={q} onChange={e => setQ(+e.target.value)} />
           </div>
 
-          {/* Steps Panel */}
-          <div className="bg-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-lg shadow-xl">
-            <div className="p-6 border-b border-slate-700">
-              <h2 className="text-xl font-semibold text-purple-300">Step-by-Step Solution</h2>
-            </div>
-            <div className="p-6">
-              <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                {steps.length === 0 ? (
-                  <p className="text-slate-400 text-center py-8">No steps yet. Generate keys or process to see the solution.</p>
-                ) : (
-                  steps.map((step, index) => (
-                    <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 20}ms` }}>
-                      {step === '---' ? (
-                        <div className="border-t border-slate-700 my-2" />
-                      ) : (
-                        <div className="flex items-start gap-2">
-                          <span className="px-2 py-0.5 mt-0.5 bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded text-xs font-mono shrink-0">
-                            {index + 1}
-                          </span>
-                          <p className="text-slate-300 font-mono text-sm whitespace-pre-wrap">{step}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+          <Button onClick={generateRandomPrimes} variant="outline">
+            <RefreshCw className="w-4 h-4 mr-2" /> Random Primes
+          </Button>
 
-      <style>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateX(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out forwards;
-        }
-      `}</style>
+          <Input type="number" value={e} onChange={e => setE(+e.target.value)} />
+
+          <Button onClick={generateKeys} className="bg-green-600">Generate Keys</Button>
+
+          <Input
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder="TEXT (A–Z only)"
+          />
+
+          <div className="flex gap-2">
+            <Button onClick={encrypt} className="flex-1">Encrypt</Button>
+            <Button onClick={decrypt} className="flex-1">Decrypt</Button>
+          </div>
+
+          {result && (
+            <div className="p-3 bg-slate-800 rounded">
+              <Label>Result</Label>
+              <p className="font-mono tracking-widest text-lg">{result}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-slate-900/50 border-purple-500/20">
+        <CardHeader>
+          <CardTitle className="text-purple-300">Steps</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
+          {steps.map((s, i) => (
+            <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              {s === '---' ? (
+                <div className="border-t border-slate-700 my-2" />
+              ) : (
+                <div className="flex gap-2">
+                  <Badge>{i + 1}</Badge>
+                  <p className="font-mono text-sm">{s}</p>
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }
