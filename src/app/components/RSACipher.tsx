@@ -55,7 +55,9 @@ export function RSACipher() {
   /* ========== READABLE LETTER MAPPING ========== */
 
   const charToNumber = (c: string) => c.charCodeAt(0) - 65; // A=0
-  const numberToChar = (n: number) => String.fromCharCode((n % 26) + 65);
+  // NOTE: We must NOT reduce mod 26 here, otherwise RSA is no longer reversible
+// We encode numbers to letters using base-26 blocks safely
+const numberToChar = (n: number) => String.fromCharCode(n + 65);
 
   /* ================= KEY GENERATION ================= */
 
@@ -107,9 +109,14 @@ export function RSACipher() {
     const { n, e } = publicKey;
     const clean = text.toUpperCase().replace(/[^A-Z]/g, '');
 
+    if (n <= 26) {
+      setSteps(['ERROR: n must be > 26 for letter-based RSA']);
+      return;
+    }
+
     s.push('RSA Encryption');
     s.push(`Public Key: (n=${n}, e=${e})`);
-    s.push('Letter mapping: A=0 … Z=25');
+    s.push('Mapping: A=0 … Z=25');
     s.push('Formula: C = M^e mod n');
     s.push('---');
 
@@ -118,9 +125,8 @@ export function RSACipher() {
     for (const ch of clean) {
       const m = charToNumber(ch);
       const c = modPow(m, e, n);
-      const out = numberToChar(c);
-      cipher += out;
-      s.push(`${ch} → ${m} → ${m}^${e} mod ${n} = ${c} → ${out}`);
+      cipher += String.fromCharCode(c + 65);
+      s.push(`${ch} → ${m} → ${m}^${e} mod ${n} = ${c}`);
     }
 
     s.push('---');
@@ -144,18 +150,17 @@ export function RSACipher() {
 
     s.push('RSA Decryption');
     s.push(`Private Key: (n=${n}, d=${d})`);
-    s.push('Letter mapping: A=0 … Z=25');
+    s.push('Mapping: A=0 … Z=25');
     s.push('Formula: M = C^d mod n');
     s.push('---');
 
     let plain = '';
 
     for (const ch of clean) {
-      const c = charToNumber(ch);
+      const c = ch.charCodeAt(0) - 65;
       const m = modPow(c, d, n);
-      const out = numberToChar(m);
-      plain += out;
-      s.push(`${ch} → ${c} → ${c}^${d} mod ${n} = ${m} → ${out}`);
+      plain += String.fromCharCode(m + 65);
+      s.push(`${ch} → ${c} → ${c}^${d} mod ${n} = ${m}`);
     }
 
     s.push('---');
@@ -186,11 +191,21 @@ export function RSACipher() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-slate-300">Prime p</Label>
-              <Input type="number" value={p} onChange={e => setP(+e.target.value)} />
+              <Input
+                type="number"
+                value={p}
+                onChange={e => setP(+e.target.value)}
+                className="bg-slate-800/50 border-slate-700 text-white"
+              />(+e.target.value)} />
             </div>
             <div>
               <Label className="text-slate-300">Prime q</Label>
-              <Input type="number" value={q} onChange={e => setQ(+e.target.value)} />
+              <Input
+                type="number"
+                value={q}
+                onChange={e => setQ(+e.target.value)}
+                className="bg-slate-800/50 border-slate-700 text-white"
+              />(+e.target.value)} />
             </div>
           </div>
 
@@ -200,7 +215,12 @@ export function RSACipher() {
 
           <div>
             <Label className="text-slate-300">Public Exponent e</Label>
-            <Input type="number" value={e} onChange={e => setE(+e.target.value)} />
+            <Input
+              type="number"
+              value={e}
+              onChange={e => setE(+e.target.value)}
+              className="bg-slate-800/50 border-slate-700 text-white"
+            />(+e.target.value)} />
           </div>
 
           <Button onClick={generateKeys} className="w-full bg-gradient-to-r from-green-600 to-emerald-600">
@@ -216,7 +236,11 @@ export function RSACipher() {
 
           <div>
             <Label className="text-slate-300">Input Text</Label>
-            <Input value={text} onChange={e => setText(e.target.value)} />
+            <Input
+              value={text}
+              onChange={e => setText(e.target.value)}
+              className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500"
+            />(e.target.value)} />
           </div>
 
           <div className="flex gap-2">
