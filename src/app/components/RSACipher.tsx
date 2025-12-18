@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -6,7 +5,6 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { ArrowRight, RefreshCw } from 'lucide-react';
 
 export function RSACipher() {
   const [text, setText] = useState('');
@@ -18,9 +16,11 @@ export function RSACipher() {
   const [publicKey, setPublicKey] = useState<{ n: number; e: number } | null>(null);
   const [privateKey, setPrivateKey] = useState<{ n: number; d: number } | null>(null);
 
-  const isPrime = (n: number) => {
+  const isPrime = (n: number): boolean => {
     if (n < 2) return false;
-    for (let i = 2; i <= Math.sqrt(n); i++) if (n % i === 0) return false;
+    for (let i = 2; i <= Math.sqrt(n); i++) {
+      if (n % i === 0) return false;
+    }
     return true;
   };
 
@@ -38,15 +38,15 @@ export function RSACipher() {
     return ((x % m) + m) % m;
   };
 
-  const modPow = (b: number, e: number, m: number): number => {
-    let r = 1;
-    b %= m;
-    while (e > 0) {
-      if (e & 1) r = (r * b) % m;
-      e >>= 1;
-      b = (b * b) % m;
+  const modPow = (base: number, exp: number, mod: number): number => {
+    let result = 1;
+    base %= mod;
+    while (exp > 0) {
+      if (exp & 1) result = (result * base) % mod;
+      exp >>= 1;
+      base = (base * base) % mod;
     }
-    return r;
+    return result;
   };
 
   const generateKeys = () => {
@@ -60,6 +60,16 @@ export function RSACipher() {
     const n = p * q;
     const phi = (p - 1) * (q - 1);
 
+    // IMPORTANT: readable A–Z mapping requires n ≤ 26
+    if (n > 26) {
+      setSteps([
+        'ERROR: For readable A–Z output, n must be ≤ 26',
+        `Current n = ${n}`,
+        'Choose smaller primes (example: p=3, q=7 → n=21)'
+      ]);
+      return;
+    }
+
     if (gcd(e, phi) !== 1) {
       setSteps([`ERROR: gcd(${e}, ${phi}) ≠ 1`]);
       return;
@@ -68,7 +78,7 @@ export function RSACipher() {
     const d = modInverse(e, phi);
 
     s.push('RSA Key Generation');
-    s.push(`p=${p}, q=${q}`);
+    s.push(`p = ${p}, q = ${q}`);
     s.push(`n = ${n}`);
     s.push(`φ(n) = ${phi}`);
     s.push(`e = ${e}`);
@@ -124,19 +134,39 @@ export function RSACipher() {
           <CardTitle className="text-cyan-300">RSA Cipher Configuration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Label className="text-slate-300">p</Label>
-          <Input value={p} onChange={(e) => setP(Number(e.target.value))}
-            className="bg-slate-800/50 border-slate-700 text-white" />
+          <div>
+            <Label className="text-slate-300">p</Label>
+            <Input
+              type="number"
+              value={p}
+              onChange={(e) => setP(Number(e.target.value))}
+              className="bg-slate-800/50 border-slate-700 text-white"
+            />
+          </div>
 
-          <Label className="text-slate-300">q</Label>
-          <Input value={q} onChange={(e) => setQ(Number(e.target.value))}
-            className="bg-slate-800/50 border-slate-700 text-white" />
+          <div>
+            <Label className="text-slate-300">q</Label>
+            <Input
+              type="number"
+              value={q}
+              onChange={(e) => setQ(Number(e.target.value))}
+              className="bg-slate-800/50 border-slate-700 text-white"
+            />
+          </div>
 
-          <Label className="text-slate-300">e</Label>
-          <Input value={e} onChange={(e) => setE(Number(e.target.value))}
-            className="bg-slate-800/50 border-slate-700 text-white" />
+          <div>
+            <Label className="text-slate-300">e</Label>
+            <Input
+              type="number"
+              value={e}
+              onChange={(e) => setE(Number(e.target.value))}
+              className="bg-slate-800/50 border-slate-700 text-white"
+            />
+          </div>
 
-          <Button onClick={generateKeys} className="w-full">Generate Keys</Button>
+          <Button onClick={generateKeys} className="w-full">
+            Generate Keys
+          </Button>
 
           <Input
             value={text}
@@ -150,7 +180,9 @@ export function RSACipher() {
             <Button onClick={decrypt} className="flex-1">Decrypt</Button>
           </div>
 
-          {result && <p className="text-white font-mono">{result}</p>}
+          {result && (
+            <p className="text-white font-mono break-all">{result}</p>
+          )}
         </CardContent>
       </Card>
 
