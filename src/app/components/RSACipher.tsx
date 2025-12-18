@@ -1,10 +1,4 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ArrowRight, RefreshCw } from 'lucide-react';
 
 export default function RSACipher() {
@@ -56,7 +50,6 @@ export default function RSACipher() {
   };
 
   const numberToLetters = (num: number): string => {
-    // Convert number to base-26 letter representation
     let result = '';
     let n = num;
     if (n === 0) return 'A';
@@ -69,7 +62,6 @@ export default function RSACipher() {
   };
 
   const lettersToNumber = (letters: string): number => {
-    // Convert letter representation back to number
     let result = 0;
     for (let i = 0; i < letters.length; i++) {
       result = result * 26 + (letters.charCodeAt(i) - 65);
@@ -80,7 +72,6 @@ export default function RSACipher() {
   const generateKeys = () => {
     const newSteps: string[] = [];
 
-    // Validate primes
     if (!isPrime(p)) {
       newSteps.push(`ERROR: p = ${p} is not a prime number!`);
       setSteps(newSteps);
@@ -109,7 +100,6 @@ export default function RSACipher() {
     newSteps.push(`  φ(n) = ${p - 1} × ${q - 1} = ${phi}`);
     newSteps.push('---');
 
-    // Validate e
     if (gcd(e, phi) !== 1) {
       newSteps.push(`ERROR: e = ${e} is not coprime with φ(n) = ${phi}!`);
       newSteps.push(`  gcd(${e}, ${phi}) = ${gcd(e, phi)} ≠ 1`);
@@ -161,7 +151,6 @@ export default function RSACipher() {
     const encrypted: number[] = [];
     const encryptedLetters: string[] = [];
 
-    // Check if any character is too large for n
     for (let i = 0; i < cleanText.length; i++) {
       const m = cleanText.charCodeAt(i);
       if (m >= n) {
@@ -178,7 +167,7 @@ export default function RSACipher() {
 
     for (let i = 0; i < cleanText.length; i++) {
       const char = cleanText[i];
-      const m = char.charCodeAt(i);
+      const m = char.charCodeAt(0);
       const c = modPow(m, e, n);
       encrypted.push(c);
       
@@ -216,10 +205,8 @@ export default function RSACipher() {
     try {
       let cipherNumbers: number[];
       
-      // Check if input is letters or numbers
       const tokens = text.trim().split(/\s+/);
       if (useLetters && /^[A-Z]+$/.test(tokens[0])) {
-        // Convert letters to numbers
         cipherNumbers = tokens.map(token => lettersToNumber(token));
         newSteps.push('Converting letter codes to numbers...');
         tokens.forEach((token, i) => {
@@ -271,71 +258,66 @@ export default function RSACipher() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
       <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
+        <div className="text-center mb-8 animate-fade-in">
           <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mb-2">
             RSA Cipher Educational Tool
           </h1>
           <p className="text-slate-400">Learn RSA encryption with step-by-step visualization</p>
-        </motion.div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="bg-slate-900/50 backdrop-blur-sm border-cyan-500/20">
-            <CardHeader>
-              <CardTitle className="text-cyan-300">RSA Cipher Configuration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          {/* Configuration Panel */}
+          <div className="bg-slate-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg shadow-xl">
+            <div className="p-6 border-b border-slate-700">
+              <h2 className="text-xl font-semibold text-cyan-300">RSA Cipher Configuration</h2>
+            </div>
+            <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-slate-300">Prime p</Label>
-                  <Input
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Prime p</label>
+                  <input
                     type="number"
                     value={p}
                     onChange={(e) => setP(parseInt(e.target.value) || 2)}
-                    className="bg-slate-800/50 border-slate-700 text-white"
+                    className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   />
                 </div>
                 <div>
-                  <Label className="text-slate-300">Prime q</Label>
-                  <Input
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Prime q</label>
+                  <input
                     type="number"
                     value={q}
                     onChange={(e) => setQ(parseInt(e.target.value) || 2)}
-                    className="bg-slate-800/50 border-slate-700 text-white"
+                    className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   />
                 </div>
               </div>
 
-              <Button
-                size="sm"
-                variant="outline"
+              <button
                 onClick={generateRandomPrimes}
-                className="w-full border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10"
+                className="w-full px-4 py-2 bg-slate-800/50 border border-cyan-500/30 text-cyan-300 rounded-lg hover:bg-cyan-500/10 transition-colors flex items-center justify-center gap-2"
               >
-                <RefreshCw className="w-3 h-3 mr-2" />
+                <RefreshCw className="w-4 h-4" />
                 Generate Random Primes
-              </Button>
+              </button>
 
               <div>
-                <Label className="text-slate-300">Public Exponent e</Label>
-                <Input
+                <label className="block text-sm font-medium text-slate-300 mb-2">Public Exponent e</label>
+                <input
                   type="number"
                   value={e}
                   onChange={(e) => setE(parseInt(e.target.value) || 3)}
-                  className="bg-slate-800/50 border-slate-700 text-white"
+                  className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
                 <p className="text-xs text-slate-400 mt-1">Common values: 3, 17, 65537</p>
               </div>
 
-              <Button
+              <button
                 onClick={generateKeys}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-medium transition-all"
               >
                 Generate Keys
-              </Button>
+              </button>
 
               {publicKey && privateKey && (
                 <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg space-y-1">
@@ -356,81 +338,94 @@ export default function RSACipher() {
                   onChange={(e) => setUseLetters(e.target.checked)}
                   className="w-4 h-4 accent-cyan-500"
                 />
-                <Label htmlFor="useLetters" className="text-slate-300 cursor-pointer">
+                <label htmlFor="useLetters" className="text-slate-300 cursor-pointer text-sm">
                   Use letter encoding (A-Z) instead of numbers
-                </Label>
+                </label>
               </div>
 
               <div>
-                <Label className="text-slate-300">Input Text / Ciphertext</Label>
-                <Input
+                <label className="block text-sm font-medium text-slate-300 mb-2">Input Text / Ciphertext</label>
+                <input
+                  type="text"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder={useLetters ? "Enter text or space-separated letter codes" : "Enter text or space-separated numbers"}
-                  className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500"
+                  className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
 
               <div className="flex gap-2">
-                <Button
+                <button
                   onClick={encrypt}
-                  className="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2"
                 >
                   Encrypt
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-                <Button
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
                   onClick={decrypt}
-                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2"
                 >
                   Decrypt
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
 
               {result && (
                 <div className="p-4 bg-slate-800/50 rounded-lg border border-cyan-500/30">
-                  <Label className="text-cyan-300 mb-2 block">Result:</Label>
+                  <label className="text-cyan-300 mb-2 block font-medium">Result:</label>
                   <p className="text-white font-mono break-all text-sm">{result}</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="bg-slate-900/50 backdrop-blur-sm border-purple-500/20">
-            <CardHeader>
-              <CardTitle className="text-purple-300">Step-by-Step Solution</CardTitle>
-            </CardHeader>
-            <CardContent>
+          {/* Steps Panel */}
+          <div className="bg-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-lg shadow-xl">
+            <div className="p-6 border-b border-slate-700">
+              <h2 className="text-xl font-semibold text-purple-300">Step-by-Step Solution</h2>
+            </div>
+            <div className="p-6">
               <div className="space-y-2 max-h-[600px] overflow-y-auto">
                 {steps.length === 0 ? (
                   <p className="text-slate-400 text-center py-8">No steps yet. Generate keys or process to see the solution.</p>
                 ) : (
                   steps.map((step, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.02 }}
-                    >
+                    <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 20}ms` }}>
                       {step === '---' ? (
                         <div className="border-t border-slate-700 my-2" />
                       ) : (
                         <div className="flex items-start gap-2">
-                          <Badge variant="outline" className="mt-0.5 border-purple-500/30 text-purple-300 shrink-0">
+                          <span className="px-2 py-0.5 mt-0.5 bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded text-xs font-mono shrink-0">
                             {index + 1}
-                          </Badge>
+                          </span>
                           <p className="text-slate-300 font-mono text-sm whitespace-pre-wrap">{step}</p>
                         </div>
                       )}
-                    </motion.div>
+                    </div>
                   ))
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateX(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 }
