@@ -52,7 +52,7 @@ export function RSACipher() {
     return result;
   };
 
-  /* ========== LETTER MAPPING (READABLE OUTPUT) ========== */
+  /* ========== READABLE LETTER MAPPING ========== */
 
   const charToNumber = (c: string) => c.charCodeAt(0) - 65; // A=0
   const numberToChar = (n: number) => String.fromCharCode((n % 26) + 65);
@@ -81,11 +81,11 @@ export function RSACipher() {
 
     s.push('RSA Key Generation');
     s.push('---');
-    s.push(`p = ${p}, q = ${q}`);
-    s.push(`n = p × q = ${n}`);
-    s.push(`φ(n) = ${phi}`);
-    s.push(`Public exponent e = ${e}`);
-    s.push(`Private exponent d = ${d}`);
+    s.push(`Step 1: p = ${p}, q = ${q}`);
+    s.push(`Step 2: n = ${n}`);
+    s.push(`Step 3: φ(n) = ${phi}`);
+    s.push(`Step 4: e = ${e}`);
+    s.push(`Step 5: d = ${d}`);
     s.push('---');
     s.push(`Public Key: (n=${n}, e=${e})`);
     s.push(`Private Key: (n=${n}, d=${d})`);
@@ -98,14 +98,18 @@ export function RSACipher() {
   /* ================= ENCRYPT ================= */
 
   const encrypt = () => {
-    if (!text || !publicKey) return;
+    if (!text || !publicKey) {
+      setSteps(['Please generate keys first']);
+      return;
+    }
 
     const s: string[] = [];
     const { n, e } = publicKey;
     const clean = text.toUpperCase().replace(/[^A-Z]/g, '');
 
     s.push('RSA Encryption');
-    s.push('Letter mapping: A=0 ... Z=25');
+    s.push(`Public Key: (n=${n}, e=${e})`);
+    s.push('Letter mapping: A=0 … Z=25');
     s.push('Formula: C = M^e mod n');
     s.push('---');
 
@@ -129,14 +133,18 @@ export function RSACipher() {
   /* ================= DECRYPT ================= */
 
   const decrypt = () => {
-    if (!text || !privateKey) return;
+    if (!text || !privateKey) {
+      setSteps(['Please generate keys first']);
+      return;
+    }
 
     const s: string[] = [];
     const { n, d } = privateKey;
     const clean = text.toUpperCase().replace(/[^A-Z]/g, '');
 
     s.push('RSA Decryption');
-    s.push('Letter mapping: A=0 ... Z=25');
+    s.push(`Private Key: (n=${n}, d=${d})`);
+    s.push('Letter mapping: A=0 … Z=25');
     s.push('Formula: M = C^d mod n');
     s.push('---');
 
@@ -166,61 +174,82 @@ export function RSACipher() {
     setQ(rq);
   };
 
-  /* ================= UI ================= */
+  /* ================= UI (UNCHANGED STYLE) ================= */
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="bg-slate-900/50 border-cyan-500/20">
+      <Card className="bg-slate-900/50 backdrop-blur-sm border-cyan-500/20">
         <CardHeader>
-          <CardTitle className="text-cyan-300">RSA Cipher</CardTitle>
+          <CardTitle className="text-cyan-300">RSA Cipher Configuration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Input type="number" value={p} onChange={e => setP(+e.target.value)} />
-            <Input type="number" value={q} onChange={e => setQ(+e.target.value)} />
+            <div>
+              <Label className="text-slate-300">Prime p</Label>
+              <Input type="number" value={p} onChange={e => setP(+e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-slate-300">Prime q</Label>
+              <Input type="number" value={q} onChange={e => setQ(+e.target.value)} />
+            </div>
           </div>
 
-          <Button onClick={generateRandomPrimes} variant="outline">
-            <RefreshCw className="w-4 h-4 mr-2" /> Random Primes
+          <Button size="sm" variant="outline" onClick={generateRandomPrimes}>
+            <RefreshCw className="w-3 h-3 mr-2" /> Generate Random Primes
           </Button>
 
-          <Input type="number" value={e} onChange={e => setE(+e.target.value)} />
+          <div>
+            <Label className="text-slate-300">Public Exponent e</Label>
+            <Input type="number" value={e} onChange={e => setE(+e.target.value)} />
+          </div>
 
-          <Button onClick={generateKeys} className="bg-green-600">Generate Keys</Button>
+          <Button onClick={generateKeys} className="w-full bg-gradient-to-r from-green-600 to-emerald-600">
+            Generate Keys
+          </Button>
 
-          <Input
-            value={text}
-            onChange={e => setText(e.target.value)}
-            placeholder="TEXT (A–Z only)"
-          />
+          {publicKey && privateKey && (
+            <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <p className="text-green-300 font-mono text-sm">Public: (n={publicKey.n}, e={publicKey.e})</p>
+              <p className="text-green-300 font-mono text-sm">Private: (n={privateKey.n}, d={privateKey.d})</p>
+            </div>
+          )}
+
+          <div>
+            <Label className="text-slate-300">Input Text</Label>
+            <Input value={text} onChange={e => setText(e.target.value)} />
+          </div>
 
           <div className="flex gap-2">
-            <Button onClick={encrypt} className="flex-1">Encrypt</Button>
-            <Button onClick={decrypt} className="flex-1">Decrypt</Button>
+            <Button onClick={encrypt} className="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600">
+              Encrypt <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
+            <Button onClick={decrypt} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600">
+              Decrypt <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
           </div>
 
           {result && (
-            <div className="p-3 bg-slate-800 rounded">
-              <Label>Result</Label>
-              <p className="font-mono tracking-widest text-lg">{result}</p>
+            <div className="p-4 bg-slate-800/50 rounded-lg border border-cyan-500/30">
+              <Label className="text-cyan-300">Result</Label>
+              <p className="font-mono tracking-widest text-white text-lg">{result}</p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900/50 border-purple-500/20">
+      <Card className="bg-slate-900/50 backdrop-blur-sm border-purple-500/20">
         <CardHeader>
-          <CardTitle className="text-purple-300">Steps</CardTitle>
+          <CardTitle className="text-purple-300">Step-by-Step Solution</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
-          {steps.map((s, i) => (
-            <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              {s === '---' ? (
+        <CardContent className="max-h-[600px] overflow-y-auto space-y-2">
+          {steps.map((step, i) => (
+            <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
+              {step === '---' ? (
                 <div className="border-t border-slate-700 my-2" />
               ) : (
                 <div className="flex gap-2">
-                  <Badge>{i + 1}</Badge>
-                  <p className="font-mono text-sm">{s}</p>
+                  <Badge variant="outline">{i + 1}</Badge>
+                  <p className="font-mono text-sm text-slate-300 whitespace-pre-wrap">{step}</p>
                 </div>
               )}
             </motion.div>
